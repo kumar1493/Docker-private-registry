@@ -1,0 +1,89 @@
+[root@node1 playbooks]# ansible-playbook new.yml 
+
+PLAY [node1] **********************************************************************************************************************************************************************************
+
+TASK [Gathering Facts] ************************************************************************************************************************************************************************
+ok: [node1]
+
+TASK [Install Docker and role dependencies] ***************************************************************************************************************************************************
+ok: [node1] => (item=[u'apt-transport-https', u'ca-certificates', u'software-properties-common', u'cron', u'curl'])
+
+TASK [Get upstream APT GPG key] ***************************************************************************************************************************************************************
+changed: [node1]
+
+TASK [Configure upstream APT repository] ******************************************************************************************************************************************************
+changed: [node1]
+
+TASK [Install Docker] *************************************************************************************************************************************************************************
+
+changed: [node1]
+
+TASK [Install Docker Compose] *****************************************************************************************************************************************************************
+changed: [node1]
+
+TASK [Install Docker Private registry] ********************************************************************************************************************************************************
+changed: [node1]
+
+TASK [Making registry open to public] *********************************************************************************************************************************************************
+changed: [node1]
+
+TASK [Test Ubuntu Group Present.] *************************************************************************************************************************************************************
+ok: [node1]
+
+TASK [Add Ubuntu User in Docker Group] ********************************************************************************************************************************************************
+changed: [node1]
+
+PLAY RECAP ************************************************************************************************************************************************************************************
+node1                      : ok=10   changed=7    unreachable=0    failed=0   
+
+[root@node1 playbooks]# 
+[root@node1 playbooks]# service docker restart
+Redirecting to /bin/systemctl restart docker.service
+[root@node1 playbooks]# docker images
+REPOSITORY                 TAG                 IMAGE ID            CREATED             SIZE
+192.168.8.30:5000/ubuntu   16.04               f975c5035748        4 weeks ago         112MB
+192.168.8.30:5000/ubuntu   v1                  f975c5035748        4 weeks ago         112MB
+centos                     latest              2d194b392dd1        4 weeks ago         195MB
+[root@node1 playbooks]# docker tag centos 192.168.8.30:5000/centos:latest
+[root@node1 playbooks]# docker images
+REPOSITORY                 TAG                 IMAGE ID            CREATED             SIZE
+192.168.8.30:5000/ubuntu   16.04               f975c5035748        4 weeks ago         112MB
+192.168.8.30:5000/ubuntu   v1                  f975c5035748        4 weeks ago         112MB
+192.168.8.30:5000/centos   latest              2d194b392dd1        4 weeks ago         195MB
+centos                     latest              2d194b392dd1        4 weeks ago         195MB
+[root@node1 playbooks]# docker push 192.168.8.30:5000/centos
+The push refers to repository [192.168.8.30:5000/centos]
+b03095563b79: Pushed 
+latest: digest: sha256:8c7ac054adab3692f7026d49fd1c4df69aa6a138b2f076b432d2ac0164c022d3 size: 529
+[root@node1 playbooks]# docker images
+'REPOSITORY                 TAG                 IMAGE ID            CREATED             SIZE
+192.168.8.30:5000/ubuntu   16.04               f975c5035748        4 weeks ago         112MB
+192.168.8.30:5000/ubuntu   v1                  f975c5035748        4 weeks ago         112MB
+192.168.8.30:5000/centos   latest              2d194b392dd1        4 weeks ago         195MB
+centos                     latest              2d194b392dd1        4 weeks ago         195MB
+[root@node1 playbooks]# docker rmi centos
+Untagged: centos:latest
+Untagged: centos@sha256:dcbc4e5e7052ea2306eed59563da1fec09196f2ecacbe042acbdcd2b44b05270
+[root@node1 playbooks]# docker rmi 192.168.8.30:5000/centos:latest
+Untagged: 192.168.8.30:5000/centos:latest
+Untagged: 192.168.8.30:5000/centos@sha256:8c7ac054adab3692f7026d49fd1c4df69aa6a138b2f076b432d2ac0164c022d3
+Deleted: sha256:2d194b392dd16955847a14f969b2dd319251471ffa6356be6d8f16c5bf53db9b
+Deleted: sha256:b03095563b7956c62ae5a6d20e5959a950e3b1a96d4404c00b7da7393847494a
+[root@node1 playbooks]# docker rmi centos:latest
+Error: No such image: centos:latest
+[root@node1 playbooks]# docker images
+REPOSITORY                 TAG                 IMAGE ID            CREATED             SIZE
+192.168.8.30:5000/ubuntu   16.04               f975c5035748        4 weeks ago         112MB
+192.168.8.30:5000/ubuntu   v1                  f975c5035748        4 weeks ago         112MB
+[root@node1 playbooks]# docker pull 192.168.8.30:5000/centos
+Using default tag: latest
+latest: Pulling from centos
+5e35d10a3eba: Pull complete 
+Digest: sha256:8c7ac054adab3692f7026d49fd1c4df69aa6a138b2f076b432d2ac0164c022d3
+Status: Downloaded newer image for 192.168.8.30:5000/centos:latest
+[root@node1 playbooks]# docker images
+REPOSITORY                 TAG                 IMAGE ID            CREATED             SIZE
+192.168.8.30:5000/ubuntu   16.04               f975c5035748        4 weeks ago         112MB
+192.168.8.30:5000/ubuntu   v1                  f975c5035748        4 weeks ago         112MB
+192.168.8.30:5000/centos   latest              2d194b392dd1        4 weeks ago         195MB
+[root@node1 playbooks]# 
