@@ -1,1 +1,89 @@
 
+---
+
+- hosts: private
+  become: true
+  vars:
+    key_url: "https://download.docker.com/linux/ubuntu/gpg"
+    docker_edition: "ce"
+    docker_channel: "edge"
+    docker_version: "18.03.0"
+    docker_install_docker_compose: True
+    docker_compose_version: "1.20.1"
+    docker_repository: "deb [arch=amd64] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} {{ docker_channel }}"
+    docker_apt_cache_time: 86400
+    docker_apt_key: "9DC858229FC7DD38854AE2D88D81803C0EBFCD88"
+
+  tasks:
+
+  - name: Install Docker and role dependencies
+    apt:
+      name: "{{ item }}"
+      state: "present"
+      install_recommends: False
+    with_items:
+      - "apt-transport-https"
+      - "ca-certificates"
+      - "software-properties-common"
+      - "cron"
+      - "curl"
+
+  - name: Get upstream APT GPG key
+    apt_key:
+      id: "{{ docker_apt_key }}"
+      keyserver: "{{ ansible_local.core.keyserver
+                     if (ansible_local|d() and ansible_local.core|d() and
+                         ansible_local.core.keyserver)
+                     else 'hkp://pool.sks-keyservers.net' }}"
+      state: "present"
+
+  - name: Configure upstream APT repository
+    apt_repository:
+      repo: "{{ docker_repository }}"
+      state: "present"
+      update_cache: True
+
+  - name: Install Docker
+    apt:
+      name: "docker-{{ docker_edition }}={{ docker_version }}~{{ docker_edition }}-0~{{ ansible_distribution | lower }}"
+      state: "present"
+      update_cache: True
+      install_recommends: False
+      cache_valid_time: "{{ docker_apt_cache_time }}"
+
+  - name: Install Docker Compose
+    get_url:
+      url: "https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-Linux-x86_64"
+      dest: "/usr/local/bin/docker-compose"
+      force: True
+      owner: "root"
+      group: "root"
+      mode: "0755"
+    when: docker_install_docker_compose
+
+  - name: Install Docker Private registry
+    command: "docker run -d -p 5000:5000 --restart=always --name registry -v /mnt/registry:/var/lib/registry registry:2.3.0"
+
+  - name: Making registry open to public
+    copy: 
+      src: /etc/docker/daemon.json
+      dest: /etc/docker/daemon.json
+      mode: 0644
+      owner: root
+      group: root
+
+  - name: Test Ubuntu Group Present.
+    group: 
+      name: docker
+      state: present
+
+  - name: Add Ubuntu User in Docker Group
+    user:
+      name: ubuntu
+      group: docker
+
+  - name: Restart Docker Service
+    command: service docker restart
+
+
+
